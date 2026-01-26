@@ -113,7 +113,7 @@ export default function LocoHubCommandCenter() {
       </aside>
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden">
+<main className="flex-1 flex flex-col min-h-screen max-w-full overflow-x-hidden bg-[#F4F5F7]">
         <header className="bg-white h-20 border-b border-slate-200 px-10 flex items-center justify-between shadow-sm sticky top-0 z-40">
           <div className="flex items-center gap-4">
             <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter">{navItems.find(i => i.id === activeTab)?.label}</h2>
@@ -151,7 +151,12 @@ export default function LocoHubCommandCenter() {
                       <p className="text-sm font-black tracking-widest">{selectedVan ? selectedVan.plate_number : 'SELECT UNIT'}</p>
                     </div>
                   </div>
-                  <iframe width="100%" height="100%" src={`https://www.openstreetmap.org/export/embed.html?bbox=${coords.lng-0.002},${coords.lat-0.002},${coords.lng+0.002},${coords.lat+0.002}&layer=mapnik&marker=${coords.lat},${coords.lng}`} className="rounded-lg" />
+                  <iframe 
+                    width="100%" 
+                    height="100%" 
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${coords.lng-0.002},${coords.lat-0.002},${coords.lng+0.002},${coords.lat+0.002}&layer=mapnik&marker=${coords.lat},${coords.lng}`} 
+                    className="rounded-lg border-0" 
+                  />
                 </div>
               </div>
 
