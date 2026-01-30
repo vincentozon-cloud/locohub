@@ -1,22 +1,38 @@
-// (c) 2026 Emveoz Hub. All Rights Reserved.
-// Proprietary and Confidential.
+/**
+ * (c) 2026 Emveoz Hub. All Rights Reserved.
+ * Proprietary and Confidential.
+ * Updated: Dashboard Field Sync Integration
+ */
 
 'use client'; 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Truck, Shield, Target, ZapOff, BarChart3, 
   Search, ClipboardCheck, Tag, LayoutDashboard, 
   Settings, LogOut, Activity, ChevronRight, RefreshCw, Plane, CheckCircle2,
   MapPin, Clock, Camera, MessageSquare, ShieldAlert, ShieldCheck, Scale, History, Info,
-  Smartphone, Monitor, Zap
+  Smartphone, Monitor, Zap, PenTool
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+
+// --- NEW IMPORTS FOR THE AUDIT FEATURE ---
+import GasStationAudit from '@/components/GasStationAudit';
+import AuditLog from '@/components/AuditLog';
+import IntegrityStatus from '@/components/IntegrityStatus';
 
 export default function LocoHubCommandCenter() {
   const [activeTab, setActiveTab] = useState('visibility');
   const [selectedVan, setSelectedVan] = useState<any>(null);
   const [fleetData, setFleetData] = useState<any[]>([]);
   const [thumblingAlert, setThumblingAlert] = useState(false);
+  
+  // --- NEW STATE FOR AUDIT SYNC ---
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const integrityScore = useMemo(() => (auditLogs.length > 0 ? 100 : 0), [auditLogs]);
+
+  const handleNewCapture = (newEntry: any) => {
+    setAuditLogs((prev) => [newEntry, ...prev]);
+  };
   
   const [coords, setCoords] = useState({ 
     lat: 8.9475, 
@@ -63,6 +79,7 @@ export default function LocoHubCommandCenter() {
 
   const navItems = [
     { id: 'visibility', label: 'HQ Visibility', icon: <LayoutDashboard size={20} /> },
+    { id: 'audit', label: 'Field Audit', icon: <Camera size={20} /> }, // NEW TAB
     { id: 'compliance', label: 'Verification & Compliance', icon: <ClipboardCheck size={20} /> },
     { id: 'transparency', label: 'Price Transparency', icon: <Tag size={20} /> },
     { id: 'analytics', label: 'Efficiency Analytics', icon: <BarChart3 size={20} /> },
@@ -71,7 +88,7 @@ export default function LocoHubCommandCenter() {
   return (
     <div className="flex min-h-screen bg-[#F4F5F7] font-sans text-slate-800">
       
-      {/* SIDEBAR NAVIGATION - Hover-to-Expand Logic */}
+      {/* SIDEBAR NAVIGATION */}
       <aside className="group fixed lg:sticky left-0 top-0 h-screen bg-slate-900 flex flex-col border-r border-slate-800 z-50 transition-all duration-300 ease-in-out w-0 lg:w-20 lg:hover:w-72 overflow-hidden lg:flex">
         <div className="p-6 flex flex-col gap-4 overflow-hidden">
           <div className="flex items-center gap-4">
@@ -103,7 +120,7 @@ export default function LocoHubCommandCenter() {
           ))}
         </nav>
 
-        {/* REWARD SYSTEM INTEGRATION */}
+        {/* STAR REWARD SYSTEM */}
         <div className="p-4 mt-auto overflow-hidden">
             <div className="bg-gradient-to-br from-yellow-500 to-amber-700 p-4 rounded-2xl border border-yellow-400/30 shadow-xl min-w-[48px]">
                 <div className="flex items-center gap-3">
@@ -132,23 +149,12 @@ export default function LocoHubCommandCenter() {
         </header>
 
         <div className="p-4 lg:p-8 flex-1 overflow-y-auto">
+          
+          {/* TAB 1: VISIBILITY (YOUR ORIGINAL MAP) */}
           {activeTab === 'visibility' && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
               <div className="lg:col-span-8">
                 <div className="bg-white rounded-[1.5rem] lg:rounded-[2.5rem] border-2 lg:border-4 border-white shadow-2xl overflow-hidden h-[350px] lg:h-[550px] relative border-slate-100 group">
-                  
-                  {/* LIVE DEMO INSTRUCTIONS OVERLAY */}
-                  <div className="absolute bottom-4 right-4 lg:bottom-6 lg:right-6 z-20 max-w-[180px] lg:max-w-xs bg-white/90 backdrop-blur-md p-3 lg:p-4 rounded-xl lg:rounded-2xl border-2 border-emerald-500 shadow-2xl transition-transform group-hover:scale-105">
-                    <div className="flex items-center gap-2 mb-1 lg:mb-2 text-emerald-600">
-                        <Smartphone size={16} className="animate-bounce" />
-                        <span className="font-black text-[10px] lg:text-xs uppercase italic">Live GPS Test</span>
-                    </div>
-                    <p className="text-[9px] lg:text-[11px] font-bold text-slate-600 leading-tight lg:leading-snug">
-                        Open on Phone and walk outside. 
-                        <span className="text-emerald-600 font-black ml-1 uppercase">Watch the map move live!</span>
-                    </p>
-                  </div>
-
                   <div className="absolute top-4 left-4 lg:top-6 lg:left-6 z-10 bg-slate-900/95 text-white p-3 lg:p-4 rounded-xl lg:rounded-2xl flex items-center gap-3 lg:gap-4 shadow-2xl border border-slate-700">
                     <Target className={`w-4 h-4 lg:w-6 lg:h-6 ${selectedVan ? 'text-[#FDB813] animate-pulse' : 'text-slate-500'}`} />
                     <div>
@@ -166,43 +172,33 @@ export default function LocoHubCommandCenter() {
               </div>
 
               <div className="lg:col-span-4 space-y-6">
-                {/* DEVICE SYNC CARD */}
                 <div className="bg-emerald-600 p-6 rounded-[1.5rem] lg:rounded-[2.5rem] shadow-xl text-white">
-                    <div className="flex items-center justify-between mb-4">
-                        <Monitor size={24} />
-                        <div className="h-px w-8 bg-white/30" />
-                        <Smartphone size={24} />
-                    </div>
-                    <h3 className="font-black text-sm uppercase italic mb-1">Cross-Device Sync</h3>
-                    <p className="text-[10px] font-bold opacity-80 uppercase leading-tight">Proof of Real-Time Logistics Tracking</p>
+                    <h3 className="font-black text-sm uppercase italic mb-1">Live Asset Sync</h3>
+                    <p className="text-[10px] font-bold opacity-80 uppercase leading-tight">Field Node EMV-001 [ACTIVE]</p>
                 </div>
 
-                <div className="bg-slate-900 p-6 lg:p-8 rounded-[1.5rem] lg:rounded-[2.5rem] shadow-2xl border-b-8 border-[#E31E24]">
-                  <div className="flex items-center gap-3 mb-4 lg:mb-6 border-b border-slate-700 pb-5 text-white">
-                    <ZapOff className="text-[#FDB813] w-5 h-5 lg:w-6 lg:h-6" />
-                    <h3 className="font-black text-base lg:text-lg uppercase tracking-tight italic">Thumbling Alerts</h3>
+                <div className="bg-slate-900 p-6 rounded-[1.5rem] lg:rounded-[2.5rem] shadow-2xl border-b-8 border-[#E31E24]">
+                  <div className="flex items-center gap-3 mb-4 border-b border-slate-700 pb-5 text-white">
+                    <ZapOff className="text-[#FDB813] w-5 h-5" />
+                    <h3 className="font-black text-lg uppercase tracking-tight italic">Thumbling Alerts</h3>
                   </div>
                   {thumblingAlert ? (
-                    <div className="bg-red-900/40 p-4 lg:p-5 rounded-2xl border-l-4 border-l-[#E31E24] animate-pulse">
-                      <p className="text-[10px] font-black text-[#FDB813] uppercase mb-1">Sync Lapse</p>
-                      <p className="text-lg lg:text-xl font-black text-white italic">{selectedVan?.plate_number || 'UNKNOWN'}</p>
+                    <div className="bg-red-900/40 p-4 rounded-2xl border-l-4 border-l-[#E31E24] animate-pulse">
+                      <p className="text-lg font-black text-white italic">{selectedVan?.plate_number || 'UNKNOWN'}</p>
                     </div>
                   ) : (
-                    <div className="bg-emerald-900/20 p-4 lg:p-5 rounded-2xl border-l-4 border-l-emerald-500">
-                      <p className="text-base lg:text-lg font-black text-white italic uppercase">All Systems Clear</p>
+                    <div className="bg-emerald-900/20 p-4 rounded-2xl border-l-4 border-l-emerald-500">
+                      <p className="text-lg font-black text-white italic uppercase">All Systems Clear</p>
                     </div>
                   )}
                 </div>
 
-                <div className="space-y-3 max-h-[200px] lg:max-h-[220px] overflow-y-auto pr-2">
+                <div className="space-y-3 max-h-[200px] overflow-y-auto">
                   {fleetData.map((van, i) => (
                     <button key={i} onClick={() => setSelectedVan(van)} className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between transition-all ${selectedVan?.id === van.id ? 'border-[#E31E24] bg-red-50' : 'border-white bg-white shadow-sm'}`}>
-                      <div className="flex items-center gap-3 text-left">
+                      <div className="flex items-center gap-3">
                         <Truck size={20} className="text-slate-300" />
-                        <div>
-                          <h4 className="text-sm font-black text-slate-900 leading-none">{van.plate_number}</h4>
-                          <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">SR: {van.senior_salesman}</p>
-                        </div>
+                        <h4 className="text-sm font-black text-slate-900 leading-none">{van.plate_number}</h4>
                       </div>
                       <CheckCircle2 size={14} className="text-emerald-500" />
                     </button>
@@ -212,20 +208,29 @@ export default function LocoHubCommandCenter() {
             </div>
           )}
 
+          {/* TAB 2: FIELD AUDIT (NEW FEATURE INJECTED) */}
+          {activeTab === 'audit' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <section className="space-y-6">
+                 {/* STICKY STYLE AUDIT TOOL */}
+                 <div className="bg-white p-2 rounded-3xl shadow-xl border-t-4 border-blue-600">
+                    <GasStationAudit onCapture={handleNewCapture} />
+                 </div>
+                 <div className="bg-[#0F172A] p-6 rounded-3xl text-white shadow-lg">
+                    <IntegrityStatus score={integrityScore} />
+                 </div>
+              </section>
+              
+              <section className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                 <AuditLog logs={auditLogs} />
+              </section>
+            </div>
+          )}
+
+          {/* TAB 3: COMPLIANCE */}
           {activeTab === 'compliance' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-4">
-                <div className={`bg-white p-6 rounded-3xl border shadow-sm flex items-center justify-between ${thumblingAlert ? 'border-red-500 bg-red-50' : 'border-slate-100'}`}>
-                  <div className="flex items-center gap-4">
-                    <div className="bg-red-50 text-red-600 p-3 rounded-2xl"><ShieldAlert size={24} /></div>
-                    <div>
-                      <h4 className="font-black text-slate-900 uppercase">{selectedVan?.plate_number || 'Unit Audit'}</h4>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{thumblingAlert ? 'Urgent: Signal Lost' : 'Verification Pending'}</p>
-                    </div>
-                  </div>
-                  <button className="text-[10px] font-black uppercase text-[#E31E24] px-4 py-2 border border-red-100 rounded-lg">Audit</button>
-                </div>
-              </div>
+            <div className="p-8 bg-white rounded-3xl border-2 border-dashed border-slate-200 text-center">
+               <p className="text-slate-400 font-bold uppercase tracking-widest">Verification Modules Standby</p>
             </div>
           )}
         </div>
