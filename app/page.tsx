@@ -1,7 +1,7 @@
 /**
  * (c) 2026 Emveoz Hub. All Rights Reserved.
  * Proprietary and Confidential.
- * Updated: Dashboard Field Sync Integration with Mobile Sidebar Fix
+ * Updated: Dashboard Field Sync Integration with Hybrid Sidebar Fix
  */
 
 'use client'; 
@@ -105,7 +105,7 @@ export default function LocoHubCommandCenter() {
   return (
     <div className="flex min-h-screen bg-[#F4F5F7] font-sans text-slate-800">
       
-      {/* MOBILE TOGGLE BUTTON - Floating Action Button for Cellphones */}
+      {/* MOBILE TOGGLE BUTTON */}
       <button 
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         className="lg:hidden fixed bottom-6 right-6 z-[70] bg-slate-900 text-white p-4 rounded-full shadow-2xl border-2 border-emerald-500 active:scale-95 transition-transform"
@@ -113,7 +113,7 @@ export default function LocoHubCommandCenter() {
         {isSidebarOpen ? <LogOut size={24} /> : <LayoutDashboard size={24} />}
       </button>
 
-      {/* MOBILE OVERLAY - Closes menu when clicking outside */}
+      {/* MOBILE OVERLAY */}
       {isSidebarOpen && (
         <div 
           className="fixed inset-0 bg-black/60 z-[45] lg:hidden backdrop-blur-sm" 
@@ -121,9 +121,9 @@ export default function LocoHubCommandCenter() {
         />
       )}
 
-      {/* SIDEBAR NAVIGATION - Updated for Mobile & Desktop Logic */}
+      {/* SIDEBAR NAVIGATION - Updated for Hybrid Desktop Hover & Mobile Toggle */}
       <aside className={`
-        fixed lg:sticky left-0 top-0 h-screen bg-slate-900 flex flex-col border-r border-slate-800 z-50 transition-all duration-300 ease-in-out
+        group fixed lg:sticky left-0 top-0 h-screen bg-slate-900 flex flex-col border-r border-slate-800 z-50 transition-all duration-300 ease-in-out
         ${isSidebarOpen ? 'w-72 translate-x-0' : '-translate-x-full lg:translate-x-0 w-0 lg:w-20 lg:hover:w-72'}
         overflow-hidden flex
       `}>
@@ -149,13 +149,13 @@ export default function LocoHubCommandCenter() {
           {navItems.map((item) => (
             <button key={item.id} onClick={() => {
                 setActiveTab(item.id);
-                setIsSidebarOpen(false); // Close menu on mobile after selection
+                setIsSidebarOpen(false); 
               }}
               className={`w-full flex items-center gap-4 px-3 py-3.5 rounded-xl transition-all font-bold text-sm ${
                 activeTab === item.id ? 'bg-[#E31E24] text-white shadow-lg shadow-red-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
               }`}>
               <div className="min-w-[20px]">{item.icon}</div>
-              <span className={`transition-opacity duration-300 uppercase tracking-tighter whitespace-nowrap ${isSidebarOpen ? 'opacity-100' : 'lg:opacity-0 lg:group-hover:opacity-100'}`}>
+              <span className={`transition-opacity duration-300 uppercase tracking-tighter whitespace-nowrap ${isSidebarOpen ? 'opacity-100' : 'opacity-0 lg:group-hover:opacity-100'}`}>
                 {item.label}
               </span>
             </button>
@@ -167,7 +167,7 @@ export default function LocoHubCommandCenter() {
             <div className="bg-gradient-to-br from-yellow-500 to-amber-700 p-4 rounded-2xl border border-yellow-400/30 shadow-xl min-w-[48px]">
                 <div className="flex items-center gap-3">
                     <Zap className="min-w-[16px] text-white w-4 h-4 fill-white" />
-                    <div className={`transition-opacity duration-300 whitespace-nowrap ${isSidebarOpen ? 'opacity-100' : 'lg:opacity-0 lg:group-hover:opacity-100'}`}>
+                    <div className={`transition-opacity duration-300 whitespace-nowrap ${isSidebarOpen ? 'opacity-100' : 'opacity-0 lg:group-hover:opacity-100'}`}>
                       <span className="text-[10px] font-black text-white uppercase tracking-wider">Star Program</span>
                       <p className="text-[8px] font-bold text-yellow-100 uppercase opacity-80 leading-tight">Integrity Active</p>
                     </div>
