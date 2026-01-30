@@ -1,7 +1,7 @@
 /**
  * (c) 2026 Emveoz Hub. All Rights Reserved.
  * Proprietary and Confidential.
- * Updated: Dashboard Field Sync Integration
+ * Updated: Dashboard Field Sync Integration with Mobile Sidebar Fix
  */
 
 'use client'; 
@@ -25,13 +25,30 @@ export default function LocoHubCommandCenter() {
   const [selectedVan, setSelectedVan] = useState<any>(null);
   const [fleetData, setFleetData] = useState<any[]>([]);
   const [thumblingAlert, setThumblingAlert] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile Sidebar State
   
   // --- NEW STATE FOR AUDIT SYNC ---
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const integrityScore = useMemo(() => (auditLogs.length > 0 ? 100 : 0), [auditLogs]);
 
-  const handleNewCapture = (newEntry: any) => {
+  const handleNewCapture = async (newEntry: any) => {
+    // 1. Update the local UI immediately so the app feels fast
     setAuditLogs((prev) => [newEntry, ...prev]);
+
+    // 2. Send the data to the 'field_audits' table you just created in Supabase
+    const { error } = await supabase
+      .from('field_audits')
+      .insert([{
+        plate_number: selectedVan?.plate_number || 'EMV-MOTO-01',
+        odo_reading: newEntry.odo,
+        location_lat: coords.lat,
+        location_lng: coords.lng,
+        integrity_score: 100,
+        image_url: newEntry.image 
+      }]);
+
+    // 3. If there is a connection problem, show it in the console
+    if (error) console.error('Sync Error:', error);
   };
   
   const [coords, setCoords] = useState({ 
@@ -79,7 +96,7 @@ export default function LocoHubCommandCenter() {
 
   const navItems = [
     { id: 'visibility', label: 'HQ Visibility', icon: <LayoutDashboard size={20} /> },
-    { id: 'audit', label: 'Field Audit', icon: <Camera size={20} /> }, // NEW TAB
+    { id: 'audit', label: 'Field Audit', icon: <Camera size={20} /> },
     { id: 'compliance', label: 'Verification & Compliance', icon: <ClipboardCheck size={20} /> },
     { id: 'transparency', label: 'Price Transparency', icon: <Tag size={20} /> },
     { id: 'analytics', label: 'Efficiency Analytics', icon: <BarChart3 size={20} /> },
@@ -88,12 +105,32 @@ export default function LocoHubCommandCenter() {
   return (
     <div className="flex min-h-screen bg-[#F4F5F7] font-sans text-slate-800">
       
-      {/* SIDEBAR NAVIGATION */}
-      <aside className="group fixed lg:sticky left-0 top-0 h-screen bg-slate-900 flex flex-col border-r border-slate-800 z-50 transition-all duration-300 ease-in-out w-0 lg:w-20 lg:hover:w-72 overflow-hidden lg:flex">
+      {/* MOBILE TOGGLE BUTTON - Floating Action Button for Cellphones */}
+      <button 
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        className="lg:hidden fixed bottom-6 right-6 z-[70] bg-slate-900 text-white p-4 rounded-full shadow-2xl border-2 border-emerald-500 active:scale-95 transition-transform"
+      >
+        {isSidebarOpen ? <LogOut size={24} /> : <LayoutDashboard size={24} />}
+      </button>
+
+      {/* MOBILE OVERLAY - Closes menu when clicking outside */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-[45] lg:hidden backdrop-blur-sm" 
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* SIDEBAR NAVIGATION - Updated for Mobile & Desktop Logic */}
+      <aside className={`
+        fixed lg:sticky left-0 top-0 h-screen bg-slate-900 flex flex-col border-r border-slate-800 z-50 transition-all duration-300 ease-in-out
+        ${isSidebarOpen ? 'w-72 translate-x-0' : '-translate-x-full lg:translate-x-0 w-0 lg:w-20 lg:hover:w-72'}
+        overflow-hidden flex
+      `}>
         <div className="p-6 flex flex-col gap-4 overflow-hidden">
           <div className="flex items-center gap-4">
             <div className="min-w-[32px] w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center font-bold text-white">LH</div>
-            <h1 className="text-xl font-black tracking-tighter text-slate-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+            <h1 className={`text-xl font-black tracking-tighter text-slate-100 transition-opacity duration-300 whitespace-nowrap ${isSidebarOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
               EMVEOZ<span className="text-emerald-500">HUB</span>
             </h1>
           </div>
@@ -102,7 +139,7 @@ export default function LocoHubCommandCenter() {
             thumblingAlert ? 'bg-red-500/20 border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]' : 'bg-emerald-500/10 border-emerald-500/30'
           }`}>
             <div className={`min-w-[8px] w-2 h-2 rounded-full ${thumblingAlert ? 'bg-red-500 animate-ping' : 'bg-emerald-500'}`} />
-            <span className={`text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap ${thumblingAlert ? 'text-red-500' : 'text-emerald-500'}`}>
+            <span className={`text-[10px] font-bold uppercase tracking-widest transition-opacity duration-300 whitespace-nowrap ${isSidebarOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} ${thumblingAlert ? 'text-red-500' : 'text-emerald-500'}`}>
               {thumblingAlert ? 'Signal Lost' : 'Satellite Lock'}
             </span>
           </div>
@@ -110,12 +147,17 @@ export default function LocoHubCommandCenter() {
 
         <nav className="flex-1 px-4 space-y-2 overflow-hidden">
           {navItems.map((item) => (
-            <button key={item.id} onClick={() => setActiveTab(item.id)}
+            <button key={item.id} onClick={() => {
+                setActiveTab(item.id);
+                setIsSidebarOpen(false); // Close menu on mobile after selection
+              }}
               className={`w-full flex items-center gap-4 px-3 py-3.5 rounded-xl transition-all font-bold text-sm ${
                 activeTab === item.id ? 'bg-[#E31E24] text-white shadow-lg shadow-red-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
               }`}>
               <div className="min-w-[20px]">{item.icon}</div>
-              <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 uppercase tracking-tighter whitespace-nowrap">{item.label}</span>
+              <span className={`transition-opacity duration-300 uppercase tracking-tighter whitespace-nowrap ${isSidebarOpen ? 'opacity-100' : 'lg:opacity-0 lg:group-hover:opacity-100'}`}>
+                {item.label}
+              </span>
             </button>
           ))}
         </nav>
@@ -125,7 +167,7 @@ export default function LocoHubCommandCenter() {
             <div className="bg-gradient-to-br from-yellow-500 to-amber-700 p-4 rounded-2xl border border-yellow-400/30 shadow-xl min-w-[48px]">
                 <div className="flex items-center gap-3">
                     <Zap className="min-w-[16px] text-white w-4 h-4 fill-white" />
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+                    <div className={`transition-opacity duration-300 whitespace-nowrap ${isSidebarOpen ? 'opacity-100' : 'lg:opacity-0 lg:group-hover:opacity-100'}`}>
                       <span className="text-[10px] font-black text-white uppercase tracking-wider">Star Program</span>
                       <p className="text-[8px] font-bold text-yellow-100 uppercase opacity-80 leading-tight">Integrity Active</p>
                     </div>
@@ -150,7 +192,6 @@ export default function LocoHubCommandCenter() {
 
         <div className="p-4 lg:p-8 flex-1 overflow-y-auto">
           
-          {/* TAB 1: VISIBILITY (YOUR ORIGINAL MAP) */}
           {activeTab === 'visibility' && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
               <div className="lg:col-span-8">
@@ -208,11 +249,9 @@ export default function LocoHubCommandCenter() {
             </div>
           )}
 
-          {/* TAB 2: FIELD AUDIT (NEW FEATURE INJECTED) */}
           {activeTab === 'audit' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <section className="space-y-6">
-                 {/* STICKY STYLE AUDIT TOOL */}
                  <div className="bg-white p-2 rounded-3xl shadow-xl border-t-4 border-blue-600">
                     <GasStationAudit onCapture={handleNewCapture} />
                  </div>
@@ -227,7 +266,6 @@ export default function LocoHubCommandCenter() {
             </div>
           )}
 
-          {/* TAB 3: COMPLIANCE */}
           {activeTab === 'compliance' && (
             <div className="p-8 bg-white rounded-3xl border-2 border-dashed border-slate-200 text-center">
                <p className="text-slate-400 font-bold uppercase tracking-widest">Verification Modules Standby</p>
