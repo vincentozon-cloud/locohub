@@ -9,3 +9,5 @@ export const verifyLocationIntegrity = (lat: number, long: number, authorizedZon
   return {
     integrityFlag: !isAuthorized,
     message: isAuthorized ? "Safe Zone" : "Unauthorized Stop Detected (Grey Zone)"
+  };
+};

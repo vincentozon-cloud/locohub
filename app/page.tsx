@@ -1,3 +1,6 @@
+// (c) 2026 Emveoz Hub. All Rights Reserved.
+// Proprietary and Confidential.
+
 'use client'; 
 import React, { useState, useEffect } from 'react';
 import { 
