@@ -155,7 +155,7 @@ export default function LocoHubCommandCenter() {
                 activeTab === item.id ? 'bg-[#E31E24] text-white shadow-lg shadow-red-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
               }`}>
               <div className="min-w-[20px]">{item.icon}</div>
-              <span className={`transition-opacity duration-300 uppercase tracking-tighter whitespace-nowrap ${isSidebarOpen ? 'opacity-100' : 'opacity-0 lg:group-hover:opacity-100'}`}>
+              <span className={`transition-opacity duration-300 uppercase tracking-tighter whitespace-nowrap ${isSidebarOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                 {item.label}
               </span>
             </button>
@@ -167,7 +167,7 @@ export default function LocoHubCommandCenter() {
             <div className="bg-gradient-to-br from-yellow-500 to-amber-700 p-4 rounded-2xl border border-yellow-400/30 shadow-xl min-w-[48px]">
                 <div className="flex items-center gap-3">
                     <Zap className="min-w-[16px] text-white w-4 h-4 fill-white" />
-                    <div className={`transition-opacity duration-300 whitespace-nowrap ${isSidebarOpen ? 'opacity-100' : 'opacity-0 lg:group-hover:opacity-100'}`}>
+                    <div className={`transition-opacity duration-300 whitespace-nowrap ${isSidebarOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                       <span className="text-[10px] font-black text-white uppercase tracking-wider">Star Program</span>
                       <p className="text-[8px] font-bold text-yellow-100 uppercase opacity-80 leading-tight">Integrity Active</p>
                     </div>
