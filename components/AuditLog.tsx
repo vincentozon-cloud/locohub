@@ -2,6 +2,7 @@
  * (c) 2026 Emveoz Hub. All Rights Reserved.
  * Audit Log: The "Evidence Locker" for management review.
  * Features: Partner Identity Sync & Live Integrity Badging.
+ * Updated: Added Null-Safety Guards for GPS coordinate rendering.
  */
 
 'use client';
@@ -12,8 +13,8 @@ interface AuditEntry {
   id: string;
   timestamp: string;
   type: string;
-  lat: number;
-  long: number;
+  lat?: number; // Optional to handle potential nulls
+  long?: number; // Optional to handle potential nulls
   photo: string;
 }
 
@@ -69,7 +70,7 @@ export default function AuditLog({ logs }: { logs: AuditEntry[] }) {
                         <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
                       </div>
                       <p className="text-[10px] text-blue-700 font-black tracking-tighter">
-                        {log.lat.toFixed(6)}, {log.long.toFixed(6)}
+                        {log.lat ? Number(log.lat).toFixed(6) : '0.000000'}, {log.long ? Number(log.long).toFixed(6) : '0.000000'}
                       </p>
                     </div>
                     
