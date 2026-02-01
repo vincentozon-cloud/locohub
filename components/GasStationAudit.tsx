@@ -1,13 +1,14 @@
 /**
  * (c) 2026 Emveoz Hub. All Rights Reserved.
  * Integrated Biometric Fuel Audit Component
- * Features: Sequential Camera Toggling, GPS Sync, and Dashboard Hook.
+ * Features: Sequential Camera Toggling, GPS Sync, Forensic Watermarking, and Dashboard Hook.
  */
 
 'use client';
 
 import React, { useState, useRef } from 'react';
 import { getCameraStream } from '@/lib/cameraController';
+import { watermarkImage } from '@/lib/image-utils';
 
 interface GasStationAuditProps {
   onCapture?: (entry: any) => void;
@@ -34,21 +35,26 @@ export default function GasStationAudit({ onCapture }: GasStationAuditProps) {
       
       if (videoRef.current && ctx) {
         ctx.drawImage(videoRef.current, 0, 0);
-        const photoData = canvas.toDataURL("image/jpeg");
+        
+        // Convert canvas to a File object for the watermark engine
+        const rawBlob = await new Promise<Blob>((resolve) => canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.95));
+        const rawFile = new File([rawBlob], "capture.jpg", { type: "image/jpeg" });
 
         // 3. Prepare the Sync Payload for Emveoz Hub Master Map
+        // Note: We send the raw file to onCapture so the parent can handle the watermarking/upload sequence
         const syncData = {
           id: Math.random().toString(36).substr(2, 9),
           timestamp: new Date().toISOString(),
           lat: latitude,
-          long: longitude,
-          photo: photoData,
-          type: type
+          lng: longitude, // Changed from 'long' to 'lng' to match dashboard state
+          image: rawFile, // This is now the File object your dashboard expects
+          type: type,
+          odo: "PENDING" // Placeholder for odo reading
         };
 
         // 4. Send to Dashboard Log via Props
         if (onCapture) {
-          onCapture(syncData);
+          await onCapture(syncData);
         }
 
         console.log("Syncing with Emveoz Hub...", syncData);
@@ -73,10 +79,18 @@ export default function GasStationAudit({ onCapture }: GasStationAuditProps) {
   };
 
   const startStep = async (mode: 'user' | 'environment') => {
-    const stream = await getCameraStream(mode);
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
-      setStep(mode === 'user' ? 'FRONT' : 'BACK');
+    try {
+      const stream = await getCameraStream(mode);
+      if (videoRef.current && stream) {
+        videoRef.current.srcObject = stream;
+        setStep(mode === 'user' ? 'FRONT' : 'BACK');
+      }
+    } catch (err: any) {
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        alert("CAMERA BLOCKED: Please click the lock icon in your browser address bar and 'Allow' camera access.");
+      } else {
+        console.error("Camera Error:", err);
+      }
     }
   };
 
@@ -92,6 +106,7 @@ export default function GasStationAudit({ onCapture }: GasStationAuditProps) {
           ref={videoRef} 
           autoPlay 
           playsInline 
+          muted
           className="w-full h-full object-cover"
         />
         
@@ -144,7 +159,7 @@ export default function GasStationAudit({ onCapture }: GasStationAuditProps) {
         {step === 'DONE' && (
             <div className="text-center p-6 bg-slate-900 rounded-2xl border-2 border-emerald-500 shadow-xl animate-in fade-in zoom-in">
             <div className="text-emerald-400 text-5xl mb-2 italic font-black">EMVEOZ</div>
-             <p className="text-white font-bold tracking-tight uppercase">Data Vault Locked</p>
+              <p className="text-white font-bold tracking-tight uppercase">Data Vault Locked</p>
             <p className="text-[10px] text-slate-400 mt-1 font-mono">
           TX_ID: {Math.random().toString(36).toUpperCase().substr(2, 8)} | SYNC_SUCCESS
         </p>

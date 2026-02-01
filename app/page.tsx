@@ -38,55 +38,59 @@ export default function LocoHubCommandCenter() {
     lastUpdated: new Date().getTime() 
   });
 
-  const handleNewCapture = async (newEntry: any) => {
-  try {
-    // 1. Generate the watermarked image as a Blob
-    const watermarkedBlob = await watermarkImage(newEntry.image, coords.lat, coords.lng);
+ const handleNewCapture = async (newEntry: any) => {
+    try {
+      let finalImageBlob: Blob | File = newEntry.image;
 
-    // 2. IMPORTANT: Convert Blob to a File object so Supabase sees the name and type
-    const fileName = `audit-${Date.now()}.jpg`;
-    const imageFile = new File([watermarkedBlob], fileName, { type: 'image/jpeg' });
+      // 1. Attempt Forensic Watermarking
+      try {
+        finalImageBlob = await watermarkImage(newEntry.image, coords.lat, coords.lng);
+      } catch (watermarkErr) {
+        console.warn("Watermark failed, falling back to raw image:", watermarkErr);
+        // If watermarking fails, we still use the original image file
+      }
 
-    // 3. Perform the Upload
-    const { data: storageData, error: storageError } = await supabase.storage
-      .from('evidence')
-      .upload(`field-runs/${fileName}`, imageFile, {
-        cacheControl: '3600',
-        upsert: false // Set to false to ensure unique files every time
-      });
+      // 2. Prepare for Upload
+      const fileName = `audit-${Date.now()}.jpg`;
+      const filePath = `field-runs/${fileName}`;
 
-    if (storageError) {
-      // This will tell us EXACTLY why it failed in the console
-      console.error('UPLOAD ERROR:', storageError.message);
-      return;
+      // 3. Upload to Supabase
+      const { data, error: storageError } = await supabase.storage
+        .from('evidence')
+        .upload(filePath, finalImageBlob, {
+          contentType: 'image/jpeg',
+          upsert: true
+        });
+
+      if (storageError) throw storageError;
+
+      // 4. Generate URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('evidence')
+        .getPublicUrl(filePath);
+
+      // 5. Update Database
+      const { error: dbError } = await supabase
+        .from('field_audits')
+        .insert([{
+          plate_number: selectedVan?.plate_number || 'EMV-MOTO-01',
+          odo_reading: newEntry.odo,
+          location_lat: coords.lat,
+          location_lng: coords.lng,
+          integrity_score: 100,
+          image_url: publicUrl 
+        }]);
+
+      if (dbError) throw dbError;
+
+      // 6. Success: Update the UI
+      setAuditLogs((prev) => [{ ...newEntry, image: publicUrl }, ...prev]);
+
+    } catch (err: any) {
+      console.error('CRITICAL SYNC ERROR:', err.message);
+      alert("Sync Error: " + err.message); // This will pop up on your phone
     }
-
-    // 4. Get the URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('evidence')
-      .getPublicUrl(`field-runs/${fileName}`);
-
-    // 5. Update Database
-    const { error: dbError } = await supabase
-      .from('field_audits')
-      .insert([{
-        plate_number: selectedVan?.plate_number || 'EMV-MOTO-TEST',
-        odo_reading: newEntry.odo,
-        location_lat: coords.lat,
-        location_lng: coords.lng,
-        image_url: publicUrl,
-        integrity_score: 100
-      }]);
-
-    if (dbError) throw dbError;
-
-    // Refresh the UI list
-    setAuditLogs(prev => [{ ...newEntry, image: publicUrl }, ...prev]);
-
-  } catch (err) {
-    console.error('Forensic Pipeline Failed:', err);
-  }
-};
+  };
   
   useEffect(() => {
     if ("geolocation" in navigator) {
