@@ -40,31 +40,33 @@ export default function LocoHubCommandCenter() {
 
   const handleNewCapture = async (newEntry: any) => {
     try {
-      // 1. Convert raw image to Forensic Watermarked Blob
-      // newEntry.image is expected to be the File/Blob from the camera
+      // 1. Capture and Process
       const watermarkedBlob = await watermarkImage(newEntry.image, coords.lat, coords.lng);
 
-      // 2. Upload the watermarked image to Supabase Storage
+      // 2. Prepare unique filename
       const fileName = `audit-${Date.now()}.jpg`;
+      const filePath = `field-runs/${fileName}`;
+
+      // 3. Upload to Storage with explicit Content-Type
       const { data: storageData, error: storageError } = await supabase.storage
         .from('evidence')
-        .upload(`field-runs/${fileName}`, watermarkedBlob, {
-          contentType: 'image/jpeg'
+        .upload(filePath, watermarkedBlob, {
+          contentType: 'image/jpeg',
+          upsert: true // Ensures it overwrites if a clash occurs
         });
 
-      if (storageError) throw storageError;
+      if (storageError) {
+        console.error('Storage Upload Failed:', storageError.message);
+        return; // Stop here if upload failed
+      }
 
-      // 3. Get the Public URL for the database entry
+      // 4. Generate the Public URL
       const { data: { publicUrl } } = supabase.storage
         .from('evidence')
-        .getPublicUrl(`field-runs/${fileName}`);
+        .getPublicUrl(filePath);
 
-      // 4. Update the local UI immediately
-      const entryWithUrl = { ...newEntry, image: publicUrl };
-      setAuditLogs((prev) => [entryWithUrl, ...prev]);
-
-      // 5. Send forensic data to the 'field_audits' table
-      const { error } = await supabase
+      // 5. Insert into Database ONLY if we have a URL
+      const { error: dbError } = await supabase
         .from('field_audits')
         .insert([{
           plate_number: selectedVan?.plate_number || 'EMV-MOTO-01',
@@ -72,12 +74,19 @@ export default function LocoHubCommandCenter() {
           location_lat: coords.lat,
           location_lng: coords.lng,
           integrity_score: 100,
-          image_url: publicUrl 
+          image_url: publicUrl // This will no longer be NULL
         }]);
 
-      if (error) console.error('Sync Error:', error);
+      if (dbError) {
+        console.error('Database Sync Error:', dbError.message);
+      } else {
+        // 6. Update local UI only after DB success
+        const entryWithUrl = { ...newEntry, image: publicUrl };
+        setAuditLogs((prev) => [entryWithUrl, ...prev]);
+      }
+
     } catch (err) {
-      console.error('Forensic Processing Failed:', err);
+      console.error('Forensic Pipeline Failure:', err);
     }
   };
   
