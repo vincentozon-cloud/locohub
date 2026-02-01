@@ -49,7 +49,7 @@ export default function GasStationAudit({ onCapture }: GasStationAuditProps) {
           lng: longitude, // Changed from 'long' to 'lng' to match dashboard state
           image: rawFile, // This is now the File object your dashboard expects
           type: type,
-          odo: "PENDING" // Placeholder for odo reading
+          odo: 0 // Placeholder for odo reading
         };
 
         // 4. Send to Dashboard Log via Props

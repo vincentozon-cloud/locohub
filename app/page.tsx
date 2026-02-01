@@ -73,13 +73,13 @@ export default function LocoHubCommandCenter() {
       const { error: dbError } = await supabase
         .from('field_audits')
         .insert([{
-          plate_number: selectedVan?.plate_number || 'EMV-MOTO-01',
-          odo_reading: newEntry.odo,
-          location_lat: coords.lat,
+         plate_number: selectedVan?.plate_number || 'EMV-MOTO-01',
+          odo_reading: Number(newEntry.odo) || 0, // Force it to be a number
+         location_lat: coords.lat,
           location_lng: coords.lng,
           integrity_score: 100,
-          image_url: publicUrl 
-        }]);
+         image_url: publicUrl 
+  }]);
 
       if (dbError) throw dbError;
 
