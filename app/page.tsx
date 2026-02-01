@@ -39,56 +39,54 @@ export default function LocoHubCommandCenter() {
   });
 
   const handleNewCapture = async (newEntry: any) => {
-    try {
-      // 1. Capture and Process
-      const watermarkedBlob = await watermarkImage(newEntry.image, coords.lat, coords.lng);
+  try {
+    // 1. Generate the watermarked image as a Blob
+    const watermarkedBlob = await watermarkImage(newEntry.image, coords.lat, coords.lng);
 
-      // 2. Prepare unique filename
-      const fileName = `audit-${Date.now()}.jpg`;
-      const filePath = `field-runs/${fileName}`;
+    // 2. IMPORTANT: Convert Blob to a File object so Supabase sees the name and type
+    const fileName = `audit-${Date.now()}.jpg`;
+    const imageFile = new File([watermarkedBlob], fileName, { type: 'image/jpeg' });
 
-      // 3. Upload to Storage with explicit Content-Type
-      const { data: storageData, error: storageError } = await supabase.storage
-        .from('evidence')
-        .upload(filePath, watermarkedBlob, {
-          contentType: 'image/jpeg',
-          upsert: true // Ensures it overwrites if a clash occurs
-        });
+    // 3. Perform the Upload
+    const { data: storageData, error: storageError } = await supabase.storage
+      .from('evidence')
+      .upload(`field-runs/${fileName}`, imageFile, {
+        cacheControl: '3600',
+        upsert: false // Set to false to ensure unique files every time
+      });
 
-      if (storageError) {
-        console.error('Storage Upload Failed:', storageError.message);
-        return; // Stop here if upload failed
-      }
-
-      // 4. Generate the Public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('evidence')
-        .getPublicUrl(filePath);
-
-      // 5. Insert into Database ONLY if we have a URL
-      const { error: dbError } = await supabase
-        .from('field_audits')
-        .insert([{
-          plate_number: selectedVan?.plate_number || 'EMV-MOTO-01',
-          odo_reading: newEntry.odo,
-          location_lat: coords.lat,
-          location_lng: coords.lng,
-          integrity_score: 100,
-          image_url: publicUrl // This will no longer be NULL
-        }]);
-
-      if (dbError) {
-        console.error('Database Sync Error:', dbError.message);
-      } else {
-        // 6. Update local UI only after DB success
-        const entryWithUrl = { ...newEntry, image: publicUrl };
-        setAuditLogs((prev) => [entryWithUrl, ...prev]);
-      }
-
-    } catch (err) {
-      console.error('Forensic Pipeline Failure:', err);
+    if (storageError) {
+      // This will tell us EXACTLY why it failed in the console
+      console.error('UPLOAD ERROR:', storageError.message);
+      return;
     }
-  };
+
+    // 4. Get the URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('evidence')
+      .getPublicUrl(`field-runs/${fileName}`);
+
+    // 5. Update Database
+    const { error: dbError } = await supabase
+      .from('field_audits')
+      .insert([{
+        plate_number: selectedVan?.plate_number || 'EMV-MOTO-TEST',
+        odo_reading: newEntry.odo,
+        location_lat: coords.lat,
+        location_lng: coords.lng,
+        image_url: publicUrl,
+        integrity_score: 100
+      }]);
+
+    if (dbError) throw dbError;
+
+    // Refresh the UI list
+    setAuditLogs(prev => [{ ...newEntry, image: publicUrl }, ...prev]);
+
+  } catch (err) {
+    console.error('Forensic Pipeline Failed:', err);
+  }
+};
   
   useEffect(() => {
     if ("geolocation" in navigator) {
