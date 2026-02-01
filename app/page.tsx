@@ -1,7 +1,7 @@
 /**
  * (c) 2026 Emveoz Hub. All Rights Reserved.
  * Proprietary and Confidential.
- * Updated: Dashboard Field Sync Integration with Hybrid Sidebar Fix
+ * Updated: Dashboard Field Sync Integration with Hybrid Sidebar Fix & Forensic Watermarking
  */
 
 'use client'; 
@@ -19,6 +19,7 @@ import { supabase } from '@/lib/supabase';
 import GasStationAudit from '@/components/GasStationAudit';
 import AuditLog from '@/components/AuditLog';
 import IntegrityStatus from '@/components/IntegrityStatus';
+import { watermarkImage } from '@/lib/image-utils';
 
 export default function LocoHubCommandCenter() {
   const [activeTab, setActiveTab] = useState('visibility');
@@ -31,32 +32,55 @@ export default function LocoHubCommandCenter() {
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const integrityScore = useMemo(() => (auditLogs.length > 0 ? 100 : 0), [auditLogs]);
 
-  const handleNewCapture = async (newEntry: any) => {
-    // 1. Update the local UI immediately so the app feels fast
-    setAuditLogs((prev) => [newEntry, ...prev]);
-
-    // 2. Send the data to the 'field_audits' table you just created in Supabase
-    const { error } = await supabase
-      .from('field_audits')
-      .insert([{
-        plate_number: selectedVan?.plate_number || 'EMV-MOTO-01',
-        odo_reading: newEntry.odo,
-        location_lat: coords.lat,
-        location_lng: coords.lng,
-        integrity_score: 100,
-        image_url: newEntry.image 
-      }]);
-
-    // 3. If there is a connection problem, show it in the console
-    if (error) console.error('Sync Error:', error);
-  };
-  
   const [coords, setCoords] = useState({ 
     lat: 8.9475, 
     lng: 125.5406, 
     lastUpdated: new Date().getTime() 
   });
 
+  const handleNewCapture = async (newEntry: any) => {
+    try {
+      // 1. Convert raw image to Forensic Watermarked Blob
+      // newEntry.image is expected to be the File/Blob from the camera
+      const watermarkedBlob = await watermarkImage(newEntry.image, coords.lat, coords.lng);
+
+      // 2. Upload the watermarked image to Supabase Storage
+      const fileName = `audit-${Date.now()}.jpg`;
+      const { data: storageData, error: storageError } = await supabase.storage
+        .from('evidence')
+        .upload(`field-runs/${fileName}`, watermarkedBlob, {
+          contentType: 'image/jpeg'
+        });
+
+      if (storageError) throw storageError;
+
+      // 3. Get the Public URL for the database entry
+      const { data: { publicUrl } } = supabase.storage
+        .from('evidence')
+        .getPublicUrl(`field-runs/${fileName}`);
+
+      // 4. Update the local UI immediately
+      const entryWithUrl = { ...newEntry, image: publicUrl };
+      setAuditLogs((prev) => [entryWithUrl, ...prev]);
+
+      // 5. Send forensic data to the 'field_audits' table
+      const { error } = await supabase
+        .from('field_audits')
+        .insert([{
+          plate_number: selectedVan?.plate_number || 'EMV-MOTO-01',
+          odo_reading: newEntry.odo,
+          location_lat: coords.lat,
+          location_lng: coords.lng,
+          integrity_score: 100,
+          image_url: publicUrl 
+        }]);
+
+      if (error) console.error('Sync Error:', error);
+    } catch (err) {
+      console.error('Forensic Processing Failed:', err);
+    }
+  };
+  
   useEffect(() => {
     if ("geolocation" in navigator) {
       const watcher = navigator.geolocation.watchPosition(
@@ -121,7 +145,7 @@ export default function LocoHubCommandCenter() {
         />
       )}
 
-      {/* SIDEBAR NAVIGATION - Updated for Hybrid Desktop Hover & Mobile Toggle */}
+      {/* SIDEBAR NAVIGATION */}
       <aside className={`
         group fixed lg:sticky left-0 top-0 h-screen bg-slate-900 flex flex-col border-r border-slate-800 z-50 transition-all duration-300 ease-in-out
         ${isSidebarOpen ? 'w-72 translate-x-0' : '-translate-x-full lg:translate-x-0 w-0 lg:w-20 lg:hover:w-72'}
@@ -162,7 +186,6 @@ export default function LocoHubCommandCenter() {
           ))}
         </nav>
 
-        {/* STAR REWARD SYSTEM */}
         <div className="p-4 mt-auto overflow-hidden">
             <div className="bg-gradient-to-br from-yellow-500 to-amber-700 p-4 rounded-2xl border border-yellow-400/30 shadow-xl min-w-[48px]">
                 <div className="flex items-center gap-3">
