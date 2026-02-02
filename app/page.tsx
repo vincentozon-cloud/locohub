@@ -2,6 +2,7 @@
  * (c) 2026 Emveoz Hub. All Rights Reserved.
  * Proprietary and Confidential.
  * Updated: Dashboard Field Sync Integration with Hybrid Sidebar Fix & Forensic Watermarking
+ * Added: Vercel Analytics for Management Tracking
  */
 
 'use client'; 
@@ -21,6 +22,9 @@ import AuditLog from '@/components/AuditLog';
 import IntegrityStatus from '@/components/IntegrityStatus';
 import { watermarkImage } from '@/lib/image-utils';
 
+// --- ADDED FOR VERCEL TRACKING ---
+import { Analytics } from "@vercel/analytics/react";
+
 export default function LocoHubCommandCenter() {
   const [activeTab, setActiveTab] = useState('visibility');
   const [selectedVan, setSelectedVan] = useState<any>(null);
@@ -38,7 +42,7 @@ export default function LocoHubCommandCenter() {
     lastUpdated: new Date().getTime() 
   });
 
- const handleNewCapture = async (newEntry: any) => {
+  const handleNewCapture = async (newEntry: any) => {
     try {
       let finalImageBlob: Blob | File = newEntry.image;
 
@@ -47,7 +51,6 @@ export default function LocoHubCommandCenter() {
         finalImageBlob = await watermarkImage(newEntry.image, coords.lat, coords.lng);
       } catch (watermarkErr) {
         console.warn("Watermark failed, falling back to raw image:", watermarkErr);
-        // If watermarking fails, we still use the original image file
       }
 
       // 2. Prepare for Upload
@@ -73,13 +76,13 @@ export default function LocoHubCommandCenter() {
       const { error: dbError } = await supabase
         .from('field_audits')
         .insert([{
-         plate_number: selectedVan?.plate_number || 'EMV-MOTO-01',
-          odo_reading: Number(newEntry.odo) || 0, // Force it to be a number
-         location_lat: coords.lat,
+          plate_number: selectedVan?.plate_number || 'EMV-MOTO-01',
+          odo_reading: Number(newEntry.odo) || 0,
+          location_lat: coords.lat,
           location_lng: coords.lng,
           integrity_score: 100,
-         image_url: publicUrl 
-  }]);
+          image_url: publicUrl 
+        }]);
 
       if (dbError) throw dbError;
 
@@ -88,7 +91,7 @@ export default function LocoHubCommandCenter() {
 
     } catch (err: any) {
       console.error('CRITICAL SYNC ERROR:', err.message);
-      alert("Sync Error: " + err.message); // This will pop up on your phone
+      alert("Sync Error: " + err.message);
     }
   };
   
@@ -286,16 +289,16 @@ export default function LocoHubCommandCenter() {
           {activeTab === 'audit' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <section className="space-y-6">
-                 <div className="bg-white p-2 rounded-3xl shadow-xl border-t-4 border-blue-600">
+                  <div className="bg-white p-2 rounded-3xl shadow-xl border-t-4 border-blue-600">
                     <GasStationAudit onCapture={handleNewCapture} />
-                 </div>
-                 <div className="bg-[#0F172A] p-6 rounded-3xl text-white shadow-lg">
+                  </div>
+                  <div className="bg-[#0F172A] p-6 rounded-3xl text-white shadow-lg">
                     <IntegrityStatus score={integrityScore} />
-                 </div>
+                  </div>
               </section>
               
               <section className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-                 <AuditLog logs={auditLogs} />
+                  <AuditLog logs={auditLogs} />
               </section>
             </div>
           )}
@@ -307,6 +310,9 @@ export default function LocoHubCommandCenter() {
           )}
         </div>
       </main>
+      
+      {/* VERCEL ANALYTICS COMPONENT */}
+      <Analytics />
     </div>
   );
 }
