@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# eMVeOzHub | High-Integrity Enterprise Hub 🛡️
+### Specialized in Cloud Security & Field Operations Integrity
 
-## Getting Started
+**"Fail-Safe by Design. Secure by Default."**
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🚀 The Mission: Operational Integrity
+eMVeOzHub is a specialized platform designed to bridge the gap between field operations and secure enterprise architecture. By eliminating manual fraud and securing data in "Dark Zones," this project ensures a "Clean Hands" audit trail for logistics and technical teams.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠️ Hardened Tech Stack
+* **Frontend:** Next.js 16 (App Router), TypeScript, Tailwind CSS
+* **Backend:** Supabase (Postgres) with Row-Level Security (RLS)
+* **Identity:** Biometric Identity Handshaking (Planned)
+* **Security:** Hardened against DoS (Next.js 16.1.6) and ReDoS (ajv/minimatch)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🏗️ Core Architecture
+* **Zero-Trust Data Path:** Implemented strict RLS to ensure 100% data isolation.
+* **Geospatial Integrity:** Custom logic for sales route monitoring with automated "Signal Loss" detection.
+* **Incentive Logic:** A tiered system linking payroll accuracy to data integrity scores.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## ⚙️ Development Setup
+1. `npm install`
+2. Configure `.env.local` with Supabase keys (Strictly excluded via `.gitignore`).
+3. `npm run dev`
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📈 Roadmap (Q2 2026)
+* **ISC2 SSCP Integration:** Aligning system controls with SSCP security domains.
+* **IBM Cyber-Analyst Audit:** Continuous threat modeling and incident response planning.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Fail-Safe by Design. Secure by Default.**
